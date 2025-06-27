@@ -12,6 +12,7 @@ import re
 from typing import Optional
 import io
 from datetime import datetime
+import fitz  # PyMuPDF
 
 
 class PDFTextExtractor:
@@ -21,6 +22,15 @@ class PDFTextExtractor:
 
     def pdf_to_images(self, pdf_path, dpi=300):
         return convert_from_path(pdf_path, dpi=dpi)
+
+    def pdf_to_images_pymupdf(self, pdf_path):
+        images = []
+        with fitz.open(pdf_path) as pdf:
+            for page in pdf:
+                pix = page.get_pixmap(dpi=300)
+                img = Image.open(io.BytesIO(pix.tobytes("png")))
+                images.append(img)
+        return images
 
     def enhance_image_for_osd(self, image: Image.Image) -> Image.Image:
         """Melhora a qualidade da imagem para melhor detecção OSD"""
@@ -244,7 +254,7 @@ def main():
                     
                     # Converte PDF para imagens
                     st.info("📄 Convertendo PDF para imagens...")
-                    pages = extractor.pdf_to_images(pdf_path)
+                    pages = extractor.pdf_to_images_pymupdf(pdf_path)  # <-- Troque para esta linha!
                     st.info(f"{len(pages)} páginas encontradas.")
                     
                     if not pages:
