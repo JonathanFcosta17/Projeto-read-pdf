@@ -184,9 +184,18 @@ def to_excel(df):
     return output
 
 
-# Defina suas variáveis aqui:
-OPENAI_API_KEY = "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"
-TESSERACT_PATH = r"C:\Program Files\Tesseract-OCR\tesseract.exe" 
+def get_config():
+    """Obtém configurações de forma segura"""
+    try:
+        # Tenta primeiro os secrets do Streamlit (para deploy)
+        openai_key = st.secrets["OPENAI_API_KEY"]
+        tesseract_path = st.secrets.get("TESSERACT_PATH", "tesseract")
+    except:
+        # Fallback para variáveis de ambiente ou valores padrão (desenvolvimento)
+        openai_key = os.getenv("OPENAI_API_KEY", "sua-chave-aqui")
+        tesseract_path = os.getenv("TESSERACT_PATH", r"C:\Program Files\Tesseract-OCR\tesseract.exe")
+    
+    return openai_key, tesseract_path
 
 
 def main():
@@ -195,6 +204,17 @@ def main():
         page_icon="📄",
         layout="wide"
     )
+    
+    # Obtém configurações
+    try:
+        OPENAI_API_KEY, TESSERACT_PATH = get_config()
+        if not OPENAI_API_KEY or OPENAI_API_KEY == "sua-chave-aqui":
+            st.error("❌ API Key do OpenAI não configurada!")
+            st.info("Configure a variável OPENAI_API_KEY nos secrets ou variáveis de ambiente.")
+            return
+    except Exception as e:
+        st.error(f"❌ Erro na configuração: {e}")
+        return
     
     st.title("📄 Extrator de Dados de PDF")
     st.markdown("---")
@@ -219,8 +239,8 @@ def main():
         if st.button("🚀 Processar PDF", type="primary"):
             try:
                 with st.spinner("Processando PDF..."):
-                    # Inicializa o extrator - MESMA FORMA QUE NO TERMINAL
-                    extractor = PDFTextExtractor(TESSERACT_PATH if TESSERACT_PATH else None)
+                    # Inicializa o extrator
+                    extractor = PDFTextExtractor(TESSERACT_PATH if TESSERACT_PATH != "tesseract" else None)
                     
                     # Converte PDF para imagens
                     st.info("📄 Convertendo PDF para imagens...")
@@ -231,7 +251,7 @@ def main():
                         st.error("❌ Não foi possível converter o PDF em imagens.")
                         return
                     
-                    # Processa as páginas - EXATAMENTE COMO NO TERMINAL
+                    # Processa as páginas
                     all_dfs = []
                     progress_bar = st.progress(0)
                     
@@ -304,7 +324,7 @@ def main():
                         
             except Exception as e:
                 st.error(f"❌ Erro durante o processamento: {e}")
-                st.exception(e)  # Mostra o traceback completo para debug
+                st.exception(e)
             finally:
                 # Remove arquivo temporário
                 if os.path.exists(pdf_path):

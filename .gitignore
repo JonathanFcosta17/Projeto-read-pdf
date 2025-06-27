@@ -1,2 +1,3 @@
 venv/
 backup/
+.streamlit/secrets.toml
